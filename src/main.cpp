@@ -170,7 +170,7 @@ int main() {
   vector<double> map_waypoints_dy;
 
   // Waypoint map to read from
-  string map_file_ = "../data/highway_map.csv";
+  string map_file_ = "/home/johannes/catkin_ws/src/Path_Planning_Bosch/data/highway_map_bosch1.csv"; //"../data/highway_map.csv";
   // The max s value before wrapping around the track back to 0
   double max_s = 6945.554;
 
@@ -232,6 +232,31 @@ int main() {
 
           	// Sensor Fusion Data, a list of all other cars on the same side of the road.
           	auto sensor_fusion = j[1]["sensor_fusion"];
+
+            // sensor data
+            std::cout << "E car pos: " << car_x << " " << car_y << "\n";
+            std::cout << "E car fer: " << car_s << " " << car_d << "\n";
+            std::cout << "E car yaw: " << car_yaw << " car_speed " << car_speed << "\n";
+
+            std::cout << "previous_path_x \n";
+            for (int i=0; i<previous_path_x.size(); i++)
+            {
+              std::cout << previous_path_x[i] << std::endl;
+            }
+
+            std::cout << "previous_path_y \n";
+            for (int i=0; i<previous_path_y.size(); i++)
+            {
+              std::cout << previous_path_y[i] << std::endl;
+            }
+
+            std::cout << "end_path_s: " << end_path_s << " end_path_d " << end_path_d << "\n";
+
+            std::cout << "sensor_fusion \n";
+            for (int i=0; i<sensor_fusion.size(); i++)
+            {
+              std::cout << sensor_fusion[i] << std::endl;
+            }
 
           	json msgJson;
 
