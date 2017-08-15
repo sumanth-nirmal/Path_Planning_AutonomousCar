@@ -8,6 +8,7 @@
 #include "Eigen-3.3/Eigen/Core"
 #include "Eigen-3.3/Eigen/QR"
 #include "json.hpp"
+#include "traj_planner.h"
 
 using namespace std;
 
@@ -174,6 +175,9 @@ int main() {
   // The max s value before wrapping around the track back to 0
   double max_s = 6945.554;
 
+  // trajectory generator
+  trajPlanner traj_planner;
+
   ifstream in_map_(map_file_.c_str(), ifstream::in);
 
   string line;
@@ -263,6 +267,7 @@ int main() {
           	vector<double> next_x_vals;
           	vector<double> next_y_vals;
 
+            traj_planner.generateTrajctory(next_x_vals, next_y_vals);
 
           	// TODO: define a path made up of (x,y) points that the car will visit sequentially every .02 seconds
           	msgJson["next_x"] = next_x_vals;
@@ -315,83 +320,3 @@ int main() {
   }
   h.run();
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
