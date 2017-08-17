@@ -2,7 +2,8 @@
 
 #include <stdio.h>
 #include <vector>
-#include <eigen3/Eigen/Eigen>
+#include <iostream>
+#include <math.h>
 
 // enum that describes the car location wrt to th ego car
 enum carDir{
@@ -25,12 +26,13 @@ enum laneNo{
 class trajPlanner
 {
 public:
+
+  void generateTrajctory(double car_x, double car_y, double car_yaw, std::vector<double>& next_x_vals, std::vector<double>& next_y_vals);
   trajPlanner();
   ~trajPlanner();
 
-  generateTrajctory(std::vector<double>& next_x_vals, std::vector<double>& next_y_vals);
-
 private:
   laneNo getLane(double d);
-  void minJerkTrajParam(double start[3], double end[3], double t, double &traj[6]);
+  double getDforLane(laneNo lane);
+  void minJerkTrajParam(double start[3], double end[3], double t, std::vector<double> &traj);
 };
