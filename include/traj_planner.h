@@ -7,6 +7,9 @@
 #include <math.h>
 #include <spline.h>
 
+#define MPH_To_MetersPerSec     2.24
+#define DESRIRED_VELOCITY_MPH   49.85
+#define NO_OF_POINTS_PER_PATH   50
 
 // For converting back and forth between radians and degrees.
 inline constexpr double pi() { return M_PI; }
@@ -69,6 +72,11 @@ private:
 
   // current lane
   laneNo curr_lane_;
+
+  // desired velocity
+  double des_vel_;
+
+  double dt_;
 
   laneNo getLane(double d);
   double getDforLane(laneNo lane);

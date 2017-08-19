@@ -33,6 +33,12 @@ trajPlanner::trajPlanner(string map_file):
   // start with middle lane
   curr_lane_ = LANE_2_e;
 
+  // desired velocity
+  des_vel_ = DESRIRED_VELOCITY_MPH;
+
+  // proc time
+  dt_ = 0.02;
+
   std::cout << "trajectory planner constrcuted \n";
 }
 
@@ -298,9 +304,9 @@ void trajPlanner::generateTrajctory(std::vector<double>& next_x_vals, std::vecto
   }
 
   // generate anchor points(from the current position of the car)
-  vector<double> wp_1 = getXY(car_s_+20, getDforLane(curr_lane_), map_waypoints_x_, map_waypoints_y_);
-  vector<double> wp_2 = getXY(car_s_+40, getDforLane(curr_lane_), map_waypoints_x_, map_waypoints_y_);
-  vector<double> wp_3 = getXY(car_s_+60, getDforLane(curr_lane_), map_waypoints_x_, map_waypoints_y_);
+  vector<double> wp_1 = getXY(car_s_+20, getDforLane(curr_lane_), map_waypoints_s_, map_waypoints_x_, map_waypoints_y_);
+  vector<double> wp_2 = getXY(car_s_+40, getDforLane(curr_lane_), map_waypoints_s_, map_waypoints_x_, map_waypoints_y_);
+  vector<double> wp_3 = getXY(car_s_+60, getDforLane(curr_lane_), map_waypoints_s_, map_waypoints_x_, map_waypoints_y_);
 
   // push way points to the points
   ptx.push_back(wp_1[0]);
@@ -315,17 +321,54 @@ void trajPlanner::generateTrajctory(std::vector<double>& next_x_vals, std::vecto
   // transform all the way points to the ego car local co ordinate frame
   for (int i=0; i<ptx.size(); i++)
   {
+    // sift reference frmae
+    double shift_x = ptx[i] - ref_x;
+    double shift_y = pty[i] - ref_y;
 
+    ptx[i] = shift_x*cos(0-ref_yaw) - shift_y*sin(0-ref_yaw);
+    pty[i] = shift_x*sin(0-ref_yaw) + shift_y*cos(0-ref_yaw);
   }
+
   // fit the spline among these waypoints
   tk::spline s;
   s.set_points(ptx, pty);
 
-  double dist_inc = 0.5;
-  for(int i = 0; i < 50; i++)
+  // use the remaining points in the previous path
+  // add these points to the new points, for smooth transition
+  for (int i=0; i<previous_path_x_.size(); i++)
   {
-    next_x_vals.push_back(car_x_ + (dist_inc*i)*std::cos(car_yaw_ * M_PI/180));
-    next_y_vals.push_back(car_y_ + (dist_inc*i)*std::sin(car_yaw_ * M_PI/180));
+    next_x_vals.push_back(previous_path_x_[i]);
+    next_y_vals.push_back(previous_path_y_[i]);
+  }
+
+  // get the points from the spline and add to way points
+  // set a horizon and get the points on segments for desired velocity
+  double horizin_x = 30;
+  double horizin_y = s(horizin_x);
+  double horizin_dist = distance(0, 0, horizin_x, horizin_y);
+
+  double inc = 0;
+  // fill the rest of the points from the spline
+  for (int i=0; i<NO_OF_POINTS_PER_PATH-previous_path_x_.size(); i++)
+  {
+    double N = horizin_dist/(dt_ * des_vel_/MPH_To_MetersPerSec);
+    double x_spline = inc + (horizin_x/N);
+    double y_spline = s(x_spline);
+
+    inc = x_spline;
+
+    // tansform the points back to map coordinates
+    double x_ref = x_spline;
+    double y_ref = y_spline;
+
+    x_spline = x_ref*cos(ref_yaw)-y_ref*sin(ref_yaw);
+    y_spline = x_ref*sin(ref_yaw)+y_ref*cos(ref_yaw);
+
+    x_spline += ref_x;
+    y_spline += ref_y;
+
+    next_x_vals.push_back(x_spline);
+    next_y_vals.push_back(y_spline);
   }
 
   std::cout << "final way points: \n";
