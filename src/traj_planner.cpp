@@ -263,9 +263,9 @@ void trajPlanner::generateTrajctory(std::vector<double>& next_x_vals, std::vecto
   vector<double> ptx, pty;
 
   //reference car pose
-  ref_x = car_x_;
-  ref_y = car_y_;
-  ref_yaw = deg2rad(car_yaw_);
+  double ref_x = car_x_;
+  double ref_y = car_y_;
+  double ref_yaw = deg2rad(car_yaw_);
 
   // if previous points are less than 2, (thats almost empty)
   if (previous_path_x_.size() < 2)
@@ -285,8 +285,13 @@ void trajPlanner::generateTrajctory(std::vector<double>& next_x_vals, std::vecto
     ref_x = previous_path_x_[previous_path_x_.size() - 1];
     ref_y = previous_path_y_[previous_path_y_.size() - 1];
 
-    ptx.push_back(previous_path_x_[previous_path_x_.size() - 2]);
-    pty.push_back(previous_path_y_[previous_path_y_.size() - 2]);
+    double ref_x_prev = previous_path_x_[previous_path_x_.size() - 2];
+    double ref_y_prev = previous_path_y_[previous_path_y_.size() - 2];
+
+    ref_yaw = atan2(ref_y - ref_y_prev, ref_x-ref_x_prev);
+
+    ptx.push_back(ref_x_prev);
+    pty.push_back(ref_y_prev);
 
     ptx.push_back(ref_x);
     pty.push_back(ref_y);
