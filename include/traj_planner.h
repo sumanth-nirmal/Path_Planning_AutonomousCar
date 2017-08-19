@@ -34,18 +34,16 @@ enum laneNo{
 class trajPlanner
 {
 public:
-
-  double distance(double x1, double y1, double x2, double y2);
-  int ClosestWaypoint(double x, double y, std::vector<double> maps_x, std::vector<double> maps_y);
-  int NextWaypoint(double x, double y, double theta, std::vector<double> maps_x, std::vector<double> maps_y);
-  std::vector<double> getFrenet(double x, double y, double theta, std::vector<double> maps_x, std::vector<double> maps_y);
-  std::vector<double> getXY(double s, double d, std::vector<double> maps_s, std::vector<double> maps_x, std::vector<double> maps_y);
-
-  void generateTrajctory(double car_x, double car_y, double car_yaw, double car_s, double car_d, std::vector<double>& next_x_vals, std::vector<double>& next_y_vals);
   trajPlanner(std::string map_file);
   ~trajPlanner();
 
+  void generateTrajctory(std::vector<double>& next_x_vals, std::vector<double>& next_y_vals);
+  void update_ecar_params(double car_x, double car_y, double car_s, double car_d, double car_yaw, double car_speed);
+  void update_previous_path(std::vector<double> previous_path_x, std::vector<double> previous_path_y, double end_path_s, double end_path_d);
+
 private:
+
+  // path for waypoints
   std::string wapypoints_path_;
 
   // Load up map values for waypoint's x,y,s and d normalized normal vectors
@@ -55,7 +53,30 @@ private:
   std::vector<double> map_waypoints_dx_;
   std::vector<double> map_waypoints_dy_;
 
+  // previous path
+  std::vector<double> previous_path_x_;
+  std::vector<double> previous_path_y_;
+  double end_path_s_;
+  double end_path_d_;
+
+  // ego car's data
+  double car_x_;
+  double car_y_;
+  double car_s_;
+  double car_d_;
+  double car_yaw_;
+  double car_speed_;
+
+  // current lane
+  laneNo curr_lane_;
+
   laneNo getLane(double d);
   double getDforLane(laneNo lane);
   void minJerkTrajParam(double start[3], double end[3], double t, std::vector<double> &traj);
+  double distance(double x1, double y1, double x2, double y2);
+  int ClosestWaypoint(double x, double y, std::vector<double> maps_x, std::vector<double> maps_y);
+  int NextWaypoint(double x, double y, double theta, std::vector<double> maps_x, std::vector<double> maps_y);
+  std::vector<double> getFrenet(double x, double y, double theta, std::vector<double> maps_x, std::vector<double> maps_y);
+  std::vector<double> getXY(double s, double d, std::vector<double> maps_s, std::vector<double> maps_x, std::vector<double> maps_y);
+
 };

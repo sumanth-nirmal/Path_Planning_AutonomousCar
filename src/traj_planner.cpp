@@ -30,7 +30,10 @@ trajPlanner::trajPlanner(string map_file):
     map_waypoints_dy_.push_back(d_y);
   }
 
- std::cout << "trajectory planner constrcuted \n";
+  // start with middle lane
+  curr_lane_ = LANE_2_e;
+
+  std::cout << "trajectory planner constrcuted \n";
 }
 
 trajPlanner::~trajPlanner()
@@ -40,126 +43,126 @@ trajPlanner::~trajPlanner()
 
 double trajPlanner::distance(double x1, double y1, double x2, double y2)
 {
-    return sqrt((x2-x1)*(x2-x1)+(y2-y1)*(y2-y1));
+  return sqrt((x2-x1)*(x2-x1)+(y2-y1)*(y2-y1));
 }
 int trajPlanner::ClosestWaypoint(double x, double y, vector<double> maps_x, vector<double> maps_y)
 {
 
-    double closestLen = 100000; //large number
-    int closestWaypoint = 0;
+  double closestLen = 100000; //large number
+  int closestWaypoint = 0;
 
-    for(int i = 0; i < maps_x.size(); i++)
+  for(int i = 0; i < maps_x.size(); i++)
+  {
+    double map_x = maps_x[i];
+    double map_y = maps_y[i];
+    double dist = distance(x,y,map_x,map_y);
+    if(dist < closestLen)
     {
-        double map_x = maps_x[i];
-        double map_y = maps_y[i];
-        double dist = distance(x,y,map_x,map_y);
-        if(dist < closestLen)
-        {
-            closestLen = dist;
-            closestWaypoint = i;
-        }
-
+      closestLen = dist;
+      closestWaypoint = i;
     }
 
-    return closestWaypoint;
+  }
+
+  return closestWaypoint;
 
 }
 
 int trajPlanner::NextWaypoint(double x, double y, double theta, vector<double> maps_x, vector<double> maps_y)
 {
 
-    int closestWaypoint = ClosestWaypoint(x,y,maps_x,maps_y);
+  int closestWaypoint = ClosestWaypoint(x,y,maps_x,maps_y);
 
-    double map_x = maps_x[closestWaypoint];
-    double map_y = maps_y[closestWaypoint];
+  double map_x = maps_x[closestWaypoint];
+  double map_y = maps_y[closestWaypoint];
 
-    double heading = atan2( (map_y-y),(map_x-x) );
+  double heading = atan2( (map_y-y),(map_x-x) );
 
-    double angle = abs(theta-heading);
+  double angle = abs(theta-heading);
 
-    if(angle > pi()/4)
-    {
-        closestWaypoint++;
-    }
+  if(angle > pi()/4)
+  {
+    closestWaypoint++;
+  }
 
-    return closestWaypoint;
+  return closestWaypoint;
 
 }
 
 // Transform from Cartesian x,y coordinates to Frenet s,d coordinates
 vector<double> trajPlanner::getFrenet(double x, double y, double theta, vector<double> maps_x, vector<double> maps_y)
 {
-    int next_wp = NextWaypoint(x,y, theta, maps_x,maps_y);
+  int next_wp = NextWaypoint(x,y, theta, maps_x,maps_y);
 
-    int prev_wp;
-    prev_wp = next_wp-1;
-    if(next_wp == 0)
-    {
-        prev_wp  = maps_x.size()-1;
-    }
+  int prev_wp;
+  prev_wp = next_wp-1;
+  if(next_wp == 0)
+  {
+    prev_wp  = maps_x.size()-1;
+  }
 
-    double n_x = maps_x[next_wp]-maps_x[prev_wp];
-    double n_y = maps_y[next_wp]-maps_y[prev_wp];
-    double x_x = x - maps_x[prev_wp];
-    double x_y = y - maps_y[prev_wp];
+  double n_x = maps_x[next_wp]-maps_x[prev_wp];
+  double n_y = maps_y[next_wp]-maps_y[prev_wp];
+  double x_x = x - maps_x[prev_wp];
+  double x_y = y - maps_y[prev_wp];
 
-    // find the projection of x onto n
-    double proj_norm = (x_x*n_x+x_y*n_y)/(n_x*n_x+n_y*n_y);
-    double proj_x = proj_norm*n_x;
-    double proj_y = proj_norm*n_y;
+  // find the projection of x onto n
+  double proj_norm = (x_x*n_x+x_y*n_y)/(n_x*n_x+n_y*n_y);
+  double proj_x = proj_norm*n_x;
+  double proj_y = proj_norm*n_y;
 
-    double frenet_d = distance(x_x,x_y,proj_x,proj_y);
+  double frenet_d = distance(x_x,x_y,proj_x,proj_y);
 
-    //see if d value is positive or negative by comparing it to a center point
+  //see if d value is positive or negative by comparing it to a center point
 
-    double center_x = 1000-maps_x[prev_wp];
-    double center_y = 2000-maps_y[prev_wp];
-    double centerToPos = distance(center_x,center_y,x_x,x_y);
-    double centerToRef = distance(center_x,center_y,proj_x,proj_y);
+  double center_x = 1000-maps_x[prev_wp];
+  double center_y = 2000-maps_y[prev_wp];
+  double centerToPos = distance(center_x,center_y,x_x,x_y);
+  double centerToRef = distance(center_x,center_y,proj_x,proj_y);
 
-    if(centerToPos <= centerToRef)
-    {
-        frenet_d *= -1;
-    }
+  if(centerToPos <= centerToRef)
+  {
+    frenet_d *= -1;
+  }
 
-    // calculate s value
-    double frenet_s = 0;
-    for(int i = 0; i < prev_wp; i++)
-    {
-        frenet_s += distance(maps_x[i],maps_y[i],maps_x[i+1],maps_y[i+1]);
-    }
+  // calculate s value
+  double frenet_s = 0;
+  for(int i = 0; i < prev_wp; i++)
+  {
+    frenet_s += distance(maps_x[i],maps_y[i],maps_x[i+1],maps_y[i+1]);
+  }
 
-    frenet_s += distance(0,0,proj_x,proj_y);
+  frenet_s += distance(0,0,proj_x,proj_y);
 
-    return {frenet_s,frenet_d};
+  return {frenet_s,frenet_d};
 
 }
 
 // Transform from Frenet s,d coordinates to Cartesian x,y
 vector<double> trajPlanner::getXY(double s, double d, vector<double> maps_s, vector<double> maps_x, vector<double> maps_y)
 {
-    int prev_wp = -1;
+  int prev_wp = -1;
 
-    while(s > maps_s[prev_wp+1] && (prev_wp < (int)(maps_s.size()-1) ))
-    {
-        prev_wp++;
-    }
+  while(s > maps_s[prev_wp+1] && (prev_wp < (int)(maps_s.size()-1) ))
+  {
+    prev_wp++;
+  }
 
-    int wp2 = (prev_wp+1)%maps_x.size();
+  int wp2 = (prev_wp+1)%maps_x.size();
 
-    double heading = atan2((maps_y[wp2]-maps_y[prev_wp]),(maps_x[wp2]-maps_x[prev_wp]));
-    // the x,y,s along the segment
-    double seg_s = (s-maps_s[prev_wp]);
+  double heading = atan2((maps_y[wp2]-maps_y[prev_wp]),(maps_x[wp2]-maps_x[prev_wp]));
+  // the x,y,s along the segment
+  double seg_s = (s-maps_s[prev_wp]);
 
-    double seg_x = maps_x[prev_wp]+seg_s*cos(heading);
-    double seg_y = maps_y[prev_wp]+seg_s*sin(heading);
+  double seg_x = maps_x[prev_wp]+seg_s*cos(heading);
+  double seg_y = maps_y[prev_wp]+seg_s*sin(heading);
 
-    double perp_heading = heading-pi()/2;
+  double perp_heading = heading-pi()/2;
 
-    double x = seg_x + d*cos(perp_heading);
-    double y = seg_y + d*sin(perp_heading);
+  double x = seg_x + d*cos(perp_heading);
+  double y = seg_y + d*sin(perp_heading);
 
-    return {x,y};
+  return {x,y};
 
 }
 
@@ -204,46 +207,125 @@ double trajPlanner::getDforLane(laneNo lane)
 // start and end is a vector with position, velocity and acceleration
 void trajPlanner::minJerkTrajParam(double start[3], double end[3], double t, std::vector<double>& traj)
 {
-    // first 3 co-effiecients from the initial conditions
-    double A0 = start[0];
-    double A1 = start[1];
-    double A2 = start[2]/2;
+  // first 3 co-effiecients from the initial conditions
+  double A0 = start[0];
+  double A1 = start[1];
+  double A2 = start[2]/2;
 
-    // last 3 co - efficients from terminal conditions
-    // minimum jerk in matrix form
-    Eigen::Matrix3Xf T;
+  // last 3 co - efficients from terminal conditions
+  // minimum jerk in matrix form
+  Eigen::Matrix3Xf T;
 
-    T << std::pow(t, 3),      std::pow(t, 4),      std::pow(t, 5),
-         3 * std::pow(t, 2),  4 * std::pow(t, 3),  5 * std::pow(t, 4),
-         6 * t,               12 * std::pow(t, 2), 20 * std::pow(t, 3);
+  T << std::pow(t, 3),      std::pow(t, 4),      std::pow(t, 5),
+      3 * std::pow(t, 2),  4 * std::pow(t, 3),  5 * std::pow(t, 4),
+      6 * t,               12 * std::pow(t, 2), 20 * std::pow(t, 3);
 
-    Eigen::MatrixXf X(3,1);
+  Eigen::MatrixXf X(3,1);
 
-    X << end[0] - A0 - A1*t - A2*t*t,
-         end[1] - A1 - 2*A2*t,
-         end[2] - 2*A2;
+  X << end[0] - A0 - A1*t - A2*t*t,
+      end[1] - A1 - 2*A2*t,
+      end[2] - 2*A2;
 
-   Eigen::VectorXf A(3, 1);
-   A = T.inverse() * X;
+  Eigen::VectorXf A(3, 1);
+  A = T.inverse() * X;
 
-   // parameters for minimum jerk trajectory
-   traj[0] = A0;   traj[1] = A1;     traj[2] = A2;
-   traj[3] = A[0]; traj[4] = A[1];   traj[5] = A[2];
+  // parameters for minimum jerk trajectory
+  traj[0] = A0;   traj[1] = A1;     traj[2] = A2;
+  traj[3] = A[0]; traj[4] = A[1];   traj[5] = A[2];
 }
 
-void trajPlanner::generateTrajctory(double car_x, double car_y, double car_yaw, double car_s, double car_d, std::vector<double>& next_x_vals, std::vector<double>& next_y_vals)
+void trajPlanner::update_ecar_params(double car_x, double car_y, double car_s, double car_d, double car_yaw, double car_speed)
 {
-    double dist_inc = 0.5;
-    for(int i = 0; i < 50; i++)
-    {
-          next_x_vals.push_back(car_x + (dist_inc*i)*std::cos(car_yaw*M_PI/180));
-          next_y_vals.push_back(car_y + (dist_inc*i)*std::sin(car_yaw*M_PI/180));
-    }
+  car_x_ = car_x;
+  car_y_ = car_y;
+  car_s_ = car_s;
+  car_d_ = car_d;
+  car_yaw_ = car_yaw;
+  car_speed_ = car_speed;
 
-    std::cout << "final way points: \n";
-    for (int i=0; i<next_x_vals.size(); i++)
-    {
-        std::cout << "x: " << next_x_vals[i] << " y: " << next_y_vals[i] << "\n";
-    }
+  // sensor data
+  std::cout << "updated car params\n";
+  std::cout << "E car pos: " << car_x_ << " " << car_y_ << "\n";
+  std::cout << "E car fer: " << car_s_ << " " << car_d_ << "\n";
+  std::cout << "E car yaw: " << car_yaw_ << " car_speed " << car_speed_ << "\n";
 }
 
+void trajPlanner::update_previous_path(vector<double> previous_path_x, vector<double> previous_path_y, double end_path_s, double end_path_d)
+{
+  previous_path_x_ = previous_path_x;
+  previous_path_y_ = previous_path_y;
+  end_path_s_ = end_path_s;
+  end_path_d_ = end_path_d;
+}
+
+void trajPlanner::generateTrajctory(std::vector<double>& next_x_vals, std::vector<double>& next_y_vals)
+{
+  vector<double> ptx, pty;
+
+  //reference car pose
+  ref_x = car_x_;
+  ref_y = car_y_;
+  ref_yaw = deg2rad(car_yaw_);
+
+  // if previous points are less than 2, (thats almost empty)
+  if (previous_path_x_.size() < 2)
+  {
+    //we use the car state
+    ptx.push_back(car_x_ - cos(car_yaw_));
+    pty.push_back(car_y_ - sin(car_yaw_));
+
+    ptx.push_back(car_x_);
+    pty.push_back(car_y_);
+  }
+  // if it has points
+  else
+  {
+    // we use the last 2 points from the previous points
+    // also update reference pose
+    ref_x = previous_path_x_[previous_path_x_.size() - 1];
+    ref_y = previous_path_y_[previous_path_y_.size() - 1];
+
+    ptx.push_back(previous_path_x_[previous_path_x_.size() - 2]);
+    pty.push_back(previous_path_y_[previous_path_y_.size() - 2]);
+
+    ptx.push_back(ref_x);
+    pty.push_back(ref_y);
+  }
+
+  // generate anchor points(from the current position of the car)
+  vector<double> wp_1 = getXY(car_s_+20, getDforLane(curr_lane_), map_waypoints_x_, map_waypoints_y_);
+  vector<double> wp_2 = getXY(car_s_+40, getDforLane(curr_lane_), map_waypoints_x_, map_waypoints_y_);
+  vector<double> wp_3 = getXY(car_s_+60, getDforLane(curr_lane_), map_waypoints_x_, map_waypoints_y_);
+
+  // push way points to the points
+  ptx.push_back(wp_1[0]);
+  pty.push_back(wp_1[1]);
+
+  ptx.push_back(wp_2[0]);
+  pty.push_back(wp_2[1]);
+
+  ptx.push_back(wp_3[0]);
+  pty.push_back(wp_3[1]);
+
+  // transform all the way points to the ego car local co ordinate frame
+  for (int i=0; i<ptx.size(); i++)
+  {
+
+  }
+  // fit the spline among these waypoints
+  tk::spline s;
+  s.set_points(ptx, pty);
+
+  double dist_inc = 0.5;
+  for(int i = 0; i < 50; i++)
+  {
+    next_x_vals.push_back(car_x_ + (dist_inc*i)*std::cos(car_yaw_ * M_PI/180));
+    next_y_vals.push_back(car_y_ + (dist_inc*i)*std::sin(car_yaw_ * M_PI/180));
+  }
+
+  std::cout << "final way points: \n";
+  for (int i=0; i<next_x_vals.size(); i++)
+  {
+    std::cout << "x: " << next_x_vals[i] << " y: " << next_y_vals[i] << "\n";
+  }
+}
