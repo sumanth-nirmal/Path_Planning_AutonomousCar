@@ -34,8 +34,8 @@ string hasData(string s) {
 int main() {
 
   // trajectory generator
-  //"../data/highway_map.csv";
-  trajPlanner trj("/home/johannes/catkin_ws/src/Path_Planning_Bosch/data/highway_map_bosch1.csv");
+  //trajPlanner trj("/home/johannes/catkin_ws/src/Path_Planning_Bosch/data/highway_map_bosch1.csv");
+  trajPlanner trj("../data/highway_map.csv");
 
   uWS::Hub h;
 
@@ -62,44 +62,13 @@ int main() {
           // j[1] is the data JSON object
           
             // Main car's localization Data
-//            double car_x = j[1]["x"];
-//            double car_y = j[1]["y"];
-//            double car_s = j[1]["s"];
-//            double car_d = j[1]["d"];
-//            double car_yaw = j[1]["yaw"];
-//            double car_speed = j[1]["speed"];
             trj.update_ecar_params(j[1]["x"], j[1]["y"], j[1]["s"], j[1]["d"], j[1]["yaw"], j[1]["speed"]);
 
-            // Previous path data given to the Planner
-            auto previous_path_x = j[1]["previous_path_x"];
-            auto previous_path_y = j[1]["previous_path_y"];
-            // Previous path's end s and d values
-            double end_path_s = j[1]["end_path_s"];
-            double end_path_d = j[1]["end_path_d"];
-            trj.update_previous_path(previous_path_x, previous_path_y, end_path_s, end_path_d);
+            // Previous path data
+            trj.update_previous_path(j[1]["previous_path_x"], j[1]["previous_path_y"], j[1]["end_path_s"], j[1]["end_path_d"]);
 
             // Sensor Fusion Data, a list of all other cars on the same side of the road.
-            auto sensor_fusion = j[1]["sensor_fusion"];
-
-            std::cout << "previous_path_x \n";
-            for (int i=0; i<previous_path_x.size(); i++)
-            {
-              std::cout << previous_path_x[i] << std::endl;
-            }
-
-            std::cout << "previous_path_y \n";
-            for (int i=0; i<previous_path_y.size(); i++)
-            {
-              std::cout << previous_path_y[i] << std::endl;
-            }
-
-            std::cout << "end_path_s: " << end_path_s << " end_path_d " << end_path_d << "\n";
-
-            std::cout << "sensor_fusion \n";
-            for (int i=0; i<sensor_fusion.size(); i++)
-            {
-              std::cout << sensor_fusion[i] << std::endl;
-            }
+            trj.update_sensor_fusion(j[1]["sensor_fusion"]);
 
             json msgJson;
 

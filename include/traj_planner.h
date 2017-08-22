@@ -9,7 +9,7 @@
 
 #define MPH_To_MetersPerSec     2.24
 #define DESRIRED_VELOCITY_MPH   49.85
-#define NO_OF_POINTS_PER_PATH   50
+#define NO_OF_POINTS_PER_PATH   20
 
 // For converting back and forth between radians and degrees.
 inline constexpr double pi() { return M_PI; }
@@ -43,6 +43,7 @@ public:
   void generateTrajctory(std::vector<double>& next_x_vals, std::vector<double>& next_y_vals);
   void update_ecar_params(double car_x, double car_y, double car_s, double car_d, double car_yaw, double car_speed);
   void update_previous_path(std::vector<double> previous_path_x, std::vector<double> previous_path_y, double end_path_s, double end_path_d);
+  void update_sensor_fusion(std::vector<std::vector<double>> sensor_fusion);
 
 private:
 
@@ -61,6 +62,9 @@ private:
   std::vector<double> previous_path_y_;
   double end_path_s_;
   double end_path_d_;
+
+  // sensor data
+  std::vector<std::vector<double>> sensor_fusion_;
 
   // ego car's data
   double car_x_;

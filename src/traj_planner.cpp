@@ -264,6 +264,16 @@ void trajPlanner::update_previous_path(vector<double> previous_path_x, vector<do
   end_path_d_ = end_path_d;
 }
 
+void trajPlanner::update_sensor_fusion(vector<vector<double>> sensor_fusion)
+{
+  sensor_fusion_.clear();
+
+  for (int i=0; i<sensor_fusion.size(); i++)
+  {
+      sensor_fusion_.push_back(sensor_fusion[i]);
+  }
+}
+
 void trajPlanner::generateTrajctory(std::vector<double>& next_x_vals, std::vector<double>& next_y_vals)
 {
   vector<double> ptx, pty;
@@ -331,6 +341,7 @@ void trajPlanner::generateTrajctory(std::vector<double>& next_x_vals, std::vecto
 
   // fit the spline among these waypoints
   tk::spline s;
+  sort(ptx.begin(), ptx.end());
   s.set_points(ptx, pty);
 
   // use the remaining points in the previous path
@@ -343,11 +354,12 @@ void trajPlanner::generateTrajctory(std::vector<double>& next_x_vals, std::vecto
 
   // get the points from the spline and add to way points
   // set a horizon and get the points on segments for desired velocity
-  double horizin_x = 30;
+  double horizin_x = 20;
   double horizin_y = s(horizin_x);
   double horizin_dist = distance(0, 0, horizin_x, horizin_y);
 
   double inc = 0;
+  std::cout << "new points " << NO_OF_POINTS_PER_PATH-previous_path_x_.size() << "\n";
   // fill the rest of the points from the spline
   for (int i=0; i<NO_OF_POINTS_PER_PATH-previous_path_x_.size(); i++)
   {
