@@ -30,7 +30,6 @@ string hasData(string s) {
   return "";
 }
 
-
 int main() {
 
   // trajectory generator
@@ -61,30 +60,30 @@ int main() {
         if (event == "telemetry") {
           // j[1] is the data JSON object
           
-            // Main car's localization Data
-            trj.update_ecar_params(j[1]["x"], j[1]["y"], j[1]["s"], j[1]["d"], j[1]["yaw"], j[1]["speed"]);
+          // Main car's localization Data
+          trj.update_ecar_params(j[1]["x"], j[1]["y"], j[1]["s"], j[1]["d"], j[1]["yaw"], j[1]["speed"]);
 
-            // Previous path data
-            trj.update_previous_path(j[1]["previous_path_x"], j[1]["previous_path_y"], j[1]["end_path_s"], j[1]["end_path_d"]);
+          // Previous path data
+          trj.update_previous_path(j[1]["previous_path_x"], j[1]["previous_path_y"], j[1]["end_path_s"], j[1]["end_path_d"]);
 
-            // Sensor Fusion Data, a list of all other cars on the same side of the road.
-            trj.update_sensor_fusion(j[1]["sensor_fusion"]);
+          // Sensor Fusion Data, a list of all other cars on the same side of the road.
+          trj.update_sensor_fusion(j[1]["sensor_fusion"]);
 
-            json msgJson;
+          json msgJson;
 
-            vector<double> next_x_vals;
-            vector<double> next_y_vals;
+          vector<double> next_x_vals;
+          vector<double> next_y_vals;
 
-            trj.generateTrajctory(next_x_vals, next_y_vals);
+          trj.generateTrajctory(next_x_vals, next_y_vals);
 
-            // TODO: define a path made up of (x,y) points that the car will visit sequentially every .02 seconds
-            msgJson["next_x"] = next_x_vals;
-            msgJson["next_y"] = next_y_vals;
+          // TODO: define a path made up of (x,y) points that the car will visit sequentially every .02 seconds
+          msgJson["next_x"] = next_x_vals;
+          msgJson["next_y"] = next_y_vals;
 
-            auto msg = "42[\"control\","+ msgJson.dump()+"]";
+          auto msg = "42[\"control\","+ msgJson.dump()+"]";
 
-            //this_thread::sleep_for(chrono::milliseconds(1000));
-            ws.send(msg.data(), msg.length(), uWS::OpCode::TEXT);
+          //this_thread::sleep_for(chrono::milliseconds(1000));
+          ws.send(msg.data(), msg.length(), uWS::OpCode::TEXT);
           
         }
       } else {
@@ -99,7 +98,7 @@ int main() {
   // program
   // doesn't compile :-(
   h.onHttpRequest([](uWS::HttpResponse *res, uWS::HttpRequest req, char *data,
-                     size_t, size_t) {
+                  size_t, size_t) {
     const std::string s = "<h1>Hello world!</h1>";
     if (req.getUrl().valueLength == 1) {
       res->end(s.data(), s.length());
@@ -114,7 +113,7 @@ int main() {
   });
 
   h.onDisconnection([&h](uWS::WebSocket<uWS::SERVER> ws, int code,
-                         char *message, size_t length) {
+                    char *message, size_t length) {
     ws.close();
     std::cout << "Disconnected" << std::endl;
   });

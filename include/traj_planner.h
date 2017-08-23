@@ -6,13 +6,13 @@
 #include <fstream>
 #include <math.h>
 #include <spline.h>
-#include <thread>
-#include <mutex>
+#include <chrono>
 
-#define MPH_To_MetersPerSec     2.24
-#define DESRIRED_VELOCITY_MPH   49.85
-#define NO_OF_POINTS_PER_PATH   50
-#define DISTANCE_THRESHOLD      30
+#define MPH_To_MetersPerSec          2.24
+#define DESRIRED_VELOCITY_MPH        49.5
+#define NO_OF_POINTS_PER_PATH        50
+#define DISTANCE_THRESHOLD           20
+#define DESIRED_ACCELERATION_MPS     10
 
 // For converting back and forth between radians and degrees.
 inline constexpr double pi() { return M_PI; }
@@ -92,11 +92,9 @@ private:
   laneNo curr_lane_;
 
   // desired velocity
-  double des_vel_;
+  double curr_vel_, desire_vel_;
 
   double dt_;
-
-  std::mutex mtx_;
 
   laneNo getLane(double d);
   double getDforLane(laneNo lane);
@@ -106,4 +104,8 @@ private:
   int NextWaypoint(double x, double y, double theta, std::vector<double> maps_x, std::vector<double> maps_y);
   std::vector<double> getFrenet(double x, double y, double theta, std::vector<double> maps_x, std::vector<double> maps_y);
   std::vector<double> getXY(double s, double d, std::vector<double> maps_s, std::vector<double> maps_x, std::vector<double> maps_y);
+  std::vector<laneNo> check_lanes(laneNo curr_lane);
+  bool check_car_ahead(double& car_ahead_vel);
+  bool lane_change_possible(laneNo lane);
+  laneNo check_lane_change(void);
 };
