@@ -34,8 +34,8 @@ string hasData(string s) {
 int main() {
 
   // trajectory generator
-  //trajPlanner trj("/home/johannes/catkin_ws/src/Path_Planning_Bosch/data/highway_map_bosch1.csv");
-  trajPlanner trj("../data/highway_map.csv");
+  trajPlanner trj("/home/johannes/catkin_ws/src/Path_Planning_Bosch/data/highway_map_bosch1.csv");
+  //trajPlanner trj("../data/highway_map.csv");
 
   uWS::Hub h;
 

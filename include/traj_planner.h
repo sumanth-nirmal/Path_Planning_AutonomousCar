@@ -6,10 +6,13 @@
 #include <fstream>
 #include <math.h>
 #include <spline.h>
+#include <thread>
+#include <mutex>
 
 #define MPH_To_MetersPerSec     2.24
 #define DESRIRED_VELOCITY_MPH   49.85
-#define NO_OF_POINTS_PER_PATH   20
+#define NO_OF_POINTS_PER_PATH   50
+#define DISTANCE_THRESHOLD      30
 
 // For converting back and forth between radians and degrees.
 inline constexpr double pi() { return M_PI; }
@@ -32,6 +35,17 @@ enum laneNo{
   LANE_2_e,
   LANE_3_e
 
+};
+
+// enum to acess the sensor fusion data
+enum sensFusion{
+  CAR_ID = 0,
+  CAR_X,
+  CAR_Y,
+  CAR_VEL_X,
+  CAR_VEL_Y,
+  CAR_S,
+  CAR_D
 };
 
 class trajPlanner
@@ -82,6 +96,8 @@ private:
 
   double dt_;
 
+  std::mutex mtx_;
+
   laneNo getLane(double d);
   double getDforLane(laneNo lane);
   void minJerkTrajParam(double start[3], double end[3], double t, std::vector<double> &traj);
@@ -90,5 +106,4 @@ private:
   int NextWaypoint(double x, double y, double theta, std::vector<double> maps_x, std::vector<double> maps_y);
   std::vector<double> getFrenet(double x, double y, double theta, std::vector<double> maps_x, std::vector<double> maps_y);
   std::vector<double> getXY(double s, double d, std::vector<double> maps_s, std::vector<double> maps_x, std::vector<double> maps_y);
-
 };

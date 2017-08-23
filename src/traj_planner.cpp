@@ -34,7 +34,7 @@ trajPlanner::trajPlanner(string map_file):
   curr_lane_ = LANE_2_e;
 
   // desired velocity
-  des_vel_ = DESRIRED_VELOCITY_MPH;
+  des_vel_ = 0;
 
   // proc time
   dt_ = 0.02;
@@ -189,6 +189,8 @@ laneNo trajPlanner::getLane(double d)
   {
     ret = LANE_3_e;
   }
+
+  return ret;
 }
 
 double trajPlanner::getDforLane(laneNo lane)
@@ -207,6 +209,8 @@ double trajPlanner::getDforLane(laneNo lane)
   {
     ret = 10;
   }
+
+  return ret;
 }
 
 // source: http://mplab.ucsd.edu/tutorials/minimumJerk.pdf
@@ -242,6 +246,7 @@ void trajPlanner::minJerkTrajParam(double start[3], double end[3], double t, std
 
 void trajPlanner::update_ecar_params(double car_x, double car_y, double car_s, double car_d, double car_yaw, double car_speed)
 {
+  std::lock_guard<std::mutex> lock(mtx_);
   car_x_ = car_x;
   car_y_ = car_y;
   car_s_ = car_s;
@@ -250,10 +255,10 @@ void trajPlanner::update_ecar_params(double car_x, double car_y, double car_s, d
   car_speed_ = car_speed;
 
   // sensor data
-  std::cout << "updated car params\n";
-  std::cout << "E car pos: " << car_x_ << " " << car_y_ << "\n";
-  std::cout << "E car fer: " << car_s_ << " " << car_d_ << "\n";
-  std::cout << "E car yaw: " << car_yaw_ << " car_speed " << car_speed_ << "\n";
+//  std::cout << "updated car params\n";
+//  std::cout << "E car pos: " << car_x_ << " " << car_y_ << "\n";
+//  std::cout << "E car fer: " << car_s_ << " " << car_d_ << "\n";
+//  std::cout << "E car yaw: " << car_yaw_ << " car_speed " << car_speed_ << "\n";
 }
 
 void trajPlanner::update_previous_path(vector<double> previous_path_x, vector<double> previous_path_y, double end_path_s, double end_path_d)
@@ -282,6 +287,43 @@ void trajPlanner::generateTrajctory(std::vector<double>& next_x_vals, std::vecto
   double ref_x = car_x_;
   double ref_y = car_y_;
   double ref_yaw = deg2rad(car_yaw_);
+
+  // if there are previous points
+  if (previous_path_x_.size() > 0)
+  {
+    std::lock_guard<std::mutex> lock(mtx_);
+    // update the current car s position to the end point position of previous path
+    car_s_ = end_path_s_;
+  }
+  bool too_close = false;
+
+  // loop thorugh the cars and check if they are nearer
+  for (int i=0; i<sensor_fusion_.size(); i++)
+  {
+    // if car is in my lane
+    if (getLane(car_d_) == getLane(sensor_fusion_[i][CAR_D]))
+    {
+      // check if we can get too close to the car in the lane
+      double sur_car_vel = std::sqrt(sensor_fusion_[i][CAR_VEL_X]*sensor_fusion_[i][CAR_VEL_X] + sensor_fusion_[i][CAR_VEL_Y]*sensor_fusion_[i][CAR_VEL_Y]);
+      double sur_car_s = sensor_fusion_[i][CAR_S] + (previous_path_x_.size() * 0.02 * sur_car_vel);
+
+      if ((sur_car_s > car_s_) &&    // if s neighbouring car is greater
+        (sur_car_s - car_s_ < DISTANCE_THRESHOLD))
+      {
+         too_close = true;
+         //curr_lane_ = LANE_1_e;
+      }
+    }
+  }
+
+  if (too_close)
+  {
+    des_vel_ -= 0.624;
+  }
+  else if (des_vel_ < DESRIRED_VELOCITY_MPH)
+  {
+    des_vel_ += 0.424;
+  }
 
   // if previous points are less than 2, (thats almost empty)
   if (previous_path_x_.size() < 2)
@@ -314,9 +356,9 @@ void trajPlanner::generateTrajctory(std::vector<double>& next_x_vals, std::vecto
   }
 
   // generate anchor points(from the current position of the car)
-  vector<double> wp_1 = getXY(car_s_+20, getDforLane(curr_lane_), map_waypoints_s_, map_waypoints_x_, map_waypoints_y_);
-  vector<double> wp_2 = getXY(car_s_+40, getDforLane(curr_lane_), map_waypoints_s_, map_waypoints_x_, map_waypoints_y_);
-  vector<double> wp_3 = getXY(car_s_+60, getDforLane(curr_lane_), map_waypoints_s_, map_waypoints_x_, map_waypoints_y_);
+  vector<double> wp_1 = getXY(car_s_+30, getDforLane(curr_lane_), map_waypoints_s_, map_waypoints_x_, map_waypoints_y_);
+  vector<double> wp_2 = getXY(car_s_+60, getDforLane(curr_lane_), map_waypoints_s_, map_waypoints_x_, map_waypoints_y_);
+  vector<double> wp_3 = getXY(car_s_+90, getDforLane(curr_lane_), map_waypoints_s_, map_waypoints_x_, map_waypoints_y_);
 
   // push way points to the points
   ptx.push_back(wp_1[0]);
@@ -341,7 +383,7 @@ void trajPlanner::generateTrajctory(std::vector<double>& next_x_vals, std::vecto
 
   // fit the spline among these waypoints
   tk::spline s;
-  sort(ptx.begin(), ptx.end());
+  //std::sort(ptx.begin(), ptx.end());
   s.set_points(ptx, pty);
 
   // use the remaining points in the previous path
@@ -354,17 +396,17 @@ void trajPlanner::generateTrajctory(std::vector<double>& next_x_vals, std::vecto
 
   // get the points from the spline and add to way points
   // set a horizon and get the points on segments for desired velocity
-  double horizin_x = 20;
+  double horizin_x = 30.0;
   double horizin_y = s(horizin_x);
   double horizin_dist = distance(0, 0, horizin_x, horizin_y);
 
   double inc = 0;
-  std::cout << "new points " << NO_OF_POINTS_PER_PATH-previous_path_x_.size() << "\n";
+//  std::cout << "new points " << NO_OF_POINTS_PER_PATH-previous_path_x_.size() << "\n";
   // fill the rest of the points from the spline
   for (int i=0; i<NO_OF_POINTS_PER_PATH-previous_path_x_.size(); i++)
   {
     double N = horizin_dist/(dt_ * des_vel_/MPH_To_MetersPerSec);
-    double x_spline = inc + (horizin_x/N);
+    double x_spline = inc + (horizin_x)/N;
     double y_spline = s(x_spline);
 
     inc = x_spline;
@@ -383,9 +425,9 @@ void trajPlanner::generateTrajctory(std::vector<double>& next_x_vals, std::vecto
     next_y_vals.push_back(y_spline);
   }
 
-  std::cout << "final way points: \n";
-  for (int i=0; i<next_x_vals.size(); i++)
-  {
-    std::cout << "x: " << next_x_vals[i] << " y: " << next_y_vals[i] << "\n";
-  }
+//  std::cout << "final way points: \n";
+//  for (int i=0; i<next_x_vals.size(); i++)
+//  {
+//    std::cout << "x: " << next_x_vals[i] << " y: " << next_y_vals[i] << "\n";
+//  }
 }
