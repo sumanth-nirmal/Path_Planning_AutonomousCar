@@ -359,6 +359,8 @@ laneNo trajPlanner::check_lane_change(void)
     ret_lane = lane[1];
   }
 
+  //std::cout <<"lane change to: " << ret_lane << "\n";
+
   return ret_lane;
 }
 
@@ -384,7 +386,7 @@ void trajPlanner::generateTrajctory(std::vector<double>& next_x_vals, std::vecto
   {
     laneNo lane = check_lane_change();
 
-    if (lane != NO_LANE_e && lane-getLane(car_d_))
+    if (lane != NO_LANE_e && abs(lane-getLane(car_d_)) == 1)
     {
       curr_lane_ = lane;
       desire_vel_ = DESRIRED_VELOCITY_MPH;
@@ -400,28 +402,34 @@ void trajPlanner::generateTrajctory(std::vector<double>& next_x_vals, std::vecto
     desire_vel_ = DESRIRED_VELOCITY_MPH;
   }
 
-  static double vel_prev=0;
+  static double vel_prev=0.1;
   static auto tim_prev = std::chrono::high_resolution_clock::now();
   auto curr_time = std::chrono::high_resolution_clock::now();
 
   std::chrono::duration<double> elapsed_dt = curr_time - tim_prev;
-  //std::cout << "exec time " << elapsed_dt.count() << "\n";
+  std::cout << "exec time " << elapsed_dt.count() << "\n";
+
+  std::cout << "vel prev: " << vel_prev;
 
   if (car_speed_ < desire_vel_)
   {
     curr_vel_ += 1.6;
-    //des_vel_ = vel_prev + (DESIRED_ACCELERATION_MPS*elapsed_dt.count())*MPH_To_MetersPerSec;
+    //curr_vel_ = vel_prev + (10*0.02*MetersPerSec_To_MPH);
+    //std::cout << "vel increasing\n";
 
     if (curr_vel_ > DESRIRED_VELOCITY_MPH)
     {
       curr_vel_ = DESRIRED_VELOCITY_MPH;
+      //std::cout << "vel wrapped\n";
     }
   }
   else
   {
     curr_vel_ -= 1.6;
+    //std::cout << "vel decreasing\n";
   }
 
+  std::cout << " curr vel " << curr_vel_ << " car vel " << car_speed_ << "\n";
   vel_prev = curr_vel_;
   tim_prev = curr_time;
 
@@ -506,7 +514,7 @@ void trajPlanner::generateTrajctory(std::vector<double>& next_x_vals, std::vecto
   // fill the rest of the points from the spline
   for (int i=0; i<NO_OF_POINTS_PER_PATH-previous_path_x_.size(); i++)
   {
-    double N = horizin_dist/(dt_ * curr_vel_/MPH_To_MetersPerSec);
+    double N = horizin_dist/(dt_ * curr_vel_/MetersPerSec_To_MPH);
     double x_spline = inc + (horizin_x)/N;
     double y_spline = s(x_spline);
 

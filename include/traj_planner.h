@@ -7,10 +7,11 @@
 #include <math.h>
 #include <spline.h>
 #include <chrono>
+#include <unistd.h>
 
-#define MPH_To_MetersPerSec          2.24
-#define DESRIRED_VELOCITY_MPH        49.5
-#define NO_OF_POINTS_PER_PATH        50
+#define MetersPerSec_To_MPH          2.24
+#define DESRIRED_VELOCITY_MPH        49.8
+#define NO_OF_POINTS_PER_PATH        30
 #define DISTANCE_THRESHOLD           20
 #define DESIRED_ACCELERATION_MPS     10
 
