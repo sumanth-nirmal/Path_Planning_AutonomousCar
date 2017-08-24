@@ -282,7 +282,7 @@ vector<laneNo> trajPlanner::check_lanes(laneNo curr_lane)
   }
   else if(curr_lane == LANE_3_e)
   {
-    return {LANE_1_e, LANE_2_e};
+    return {LANE_2_e, LANE_1_e};
   }
 }
 
@@ -315,6 +315,7 @@ bool trajPlanner::check_car_ahead(double& car_ahead_vel)
 bool trajPlanner::lane_change_possible(laneNo lane)
 {
   bool ret = false;
+  bool is_nocar_in_cutrange = true;
 
   // loop thorugh the cars and check if they are nearer
   for (int i=0; i<sensor_fusion_.size(); i++)
@@ -329,12 +330,14 @@ bool trajPlanner::lane_change_possible(laneNo lane)
       if (((sur_car_s > car_s_) && (sur_car_s - car_s_ < DISTANCE_THRESHOLD)) ||
           ((sur_car_s < car_s_) && (car_s_ - sur_car_s < DISTANCE_THRESHOLD)))
       {
-      }
-      else
-      {
-        ret = true;
+        is_nocar_in_cutrange = false;
       }
     }
+  }
+
+  if (is_nocar_in_cutrange)
+  {
+    ret = true;
   }
 
   return ret;
@@ -362,7 +365,6 @@ laneNo trajPlanner::check_lane_change(void)
 void trajPlanner::generateTrajctory(std::vector<double>& next_x_vals, std::vector<double>& next_y_vals)
 {
   vector<double> ptx, pty;
-  ptx.clear(); pty.clear();
 
   //reference car pose
   double ref_x = car_x_;
@@ -382,7 +384,7 @@ void trajPlanner::generateTrajctory(std::vector<double>& next_x_vals, std::vecto
   {
     laneNo lane = check_lane_change();
 
-    if (lane != NO_LANE_e)
+    if (lane != NO_LANE_e && lane-getLane(car_d_))
     {
       curr_lane_ = lane;
       desire_vel_ = DESRIRED_VELOCITY_MPH;
@@ -403,9 +405,9 @@ void trajPlanner::generateTrajctory(std::vector<double>& next_x_vals, std::vecto
   auto curr_time = std::chrono::high_resolution_clock::now();
 
   std::chrono::duration<double> elapsed_dt = curr_time - tim_prev;
-  std::cout << "exec time " << elapsed_dt.count() << "\n";
+  //std::cout << "exec time " << elapsed_dt.count() << "\n";
 
-  if (curr_vel_ < desire_vel_)
+  if (car_speed_ < desire_vel_)
   {
     curr_vel_ += 1.6;
     //des_vel_ = vel_prev + (DESIRED_ACCELERATION_MPS*elapsed_dt.count())*MPH_To_MetersPerSec;
@@ -414,7 +416,6 @@ void trajPlanner::generateTrajctory(std::vector<double>& next_x_vals, std::vecto
     {
       curr_vel_ = DESRIRED_VELOCITY_MPH;
     }
-    //std::cout << "\ndesired vel: " << curr_vel_ << "\n";
   }
   else
   {
@@ -496,7 +497,7 @@ void trajPlanner::generateTrajctory(std::vector<double>& next_x_vals, std::vecto
 
   // get the points from the spline and add to way points
   // set a horizon and get the points on segments for desired velocity
-  double horizin_x = 30.0;
+  double horizin_x = DISTANCE_THRESHOLD;
   double horizin_y = s(horizin_x);
   double horizin_dist = distance(0, 0, horizin_x, horizin_y);
 
