@@ -418,38 +418,38 @@ laneNo trajPlanner::check_lane_change(void)
     if (car_dist_lane_op1 > car_dist_lane_op2 &&
         car_vel_lane_op1 > car_vel_lane_op2)
     {
-      ret_lane = lane[1];
+      ret_lane = lane[0];
       std::cout << "1\n";
     }
     else if (car_dist_lane_op2 > car_dist_lane_op1 &&
              car_vel_lane_op2 > car_vel_lane_op1)
     {
-      ret_lane = lane[2];
+      ret_lane = lane[1];
       std::cout << "2\n";
     }
     else if (car_vel_lane_op2 > car_vel_lane_op1)
     {
-      ret_lane = lane[2];
+      ret_lane = lane[1];
       std::cout << "3\n";
     }
     else if (car_vel_lane_op1 > car_vel_lane_op2)
     {
-      ret_lane = lane[1];
+      ret_lane = lane[0];
       std::cout << "4\n";
     }
     else if (car_dist_lane_op2 > car_dist_lane_op1)
     {
-      ret_lane = lane[2];
+      ret_lane = lane[1];
       std::cout << "5\n";
     }
     else if (car_dist_lane_op1 > car_dist_lane_op2)
     {
-      ret_lane = lane[1];
+      ret_lane = lane[0];
       std::cout << "6\n";
     }
     else
     {
-      ret_lane = lane[1];
+      ret_lane = lane[0];
       std::cout << "fall through case\n";
     }
   }

@@ -13,7 +13,7 @@
 #define DESRIRED_VELOCITY_MPH        49.9
 #define NO_OF_POINTS_PER_PATH        35
 #define DISTANCE_THRESHOLD           20
-#define HORIZON_X_THRESHOLD          20
+#define HORIZON_X_THRESHOLD          30
 #define DESIRED_ACCELERATION_MPS     10
 #define MINIMUM_CAR_AHEAD_DISTANCE   3
 
