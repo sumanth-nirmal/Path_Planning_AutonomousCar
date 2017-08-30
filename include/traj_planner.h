@@ -10,10 +10,12 @@
 #include <unistd.h>
 
 #define MetersPerSec_To_MPH          2.24
-#define DESRIRED_VELOCITY_MPH        49.8
-#define NO_OF_POINTS_PER_PATH        30
+#define DESRIRED_VELOCITY_MPH        49.9
+#define NO_OF_POINTS_PER_PATH        35
 #define DISTANCE_THRESHOLD           20
+#define HORIZON_X_THRESHOLD          20
 #define DESIRED_ACCELERATION_MPS     10
+#define MINIMUM_CAR_AHEAD_DISTANCE   3
 
 // For converting back and forth between radians and degrees.
 inline constexpr double pi() { return M_PI; }
@@ -92,8 +94,8 @@ private:
   // current lane
   laneNo curr_lane_;
 
-  // desired velocity
-  double curr_vel_, desire_vel_;
+  // current velocity
+  double curr_vel_;
 
   double dt_;
 
@@ -106,7 +108,10 @@ private:
   std::vector<double> getFrenet(double x, double y, double theta, std::vector<double> maps_x, std::vector<double> maps_y);
   std::vector<double> getXY(double s, double d, std::vector<double> maps_s, std::vector<double> maps_x, std::vector<double> maps_y);
   std::vector<laneNo> check_lanes(laneNo curr_lane);
-  bool check_car_ahead(double& car_ahead_vel);
-  bool lane_change_possible(laneNo lane);
+  bool check_car_ahead(laneNo lane, double& car_ahead_vel, double &car_ahead_dist);
+  void get_car_ahead(laneNo lane, double& car_ahead_vel, double &car_ahead_dist);
+  bool lane_change_possible(laneNo lane, int fwd_th, int bwd_th);
   laneNo check_lane_change(void);
+  laneNo get_intermediate_lane(laneNo dst_lane);
+  void update_velocity(double desired_velocity);
 };

@@ -33,9 +33,8 @@ trajPlanner::trajPlanner(string map_file):
   // start with middle lane
   curr_lane_ = LANE_2_e;
 
-  // desired velocity
+  // current velocity
   curr_vel_ = 0;
-  desire_vel_ = DESRIRED_VELOCITY_MPH;
 
   // proc time
   dt_ = 0.02;
@@ -286,36 +285,22 @@ vector<laneNo> trajPlanner::check_lanes(laneNo curr_lane)
   }
 }
 
-bool trajPlanner::check_car_ahead(double& car_ahead_vel)
+// actually obselete
+laneNo trajPlanner::get_intermediate_lane(laneNo dst_lane)
 {
-  bool ret = false;
-
-  // loop thorugh the cars and check if they are nearer
-  for (int i=0; i<sensor_fusion_.size(); i++)
+  if(getLane(car_d_) == LANE_1_e && dst_lane == LANE_3_e)
   {
-    // if car is in my lane
-    if (getLane(car_d_) == getLane(sensor_fusion_[i][CAR_D]))
-    {
-      // check if we can get too close to the car in the lane
-      double sur_car_vel = std::sqrt(sensor_fusion_[i][CAR_VEL_X]*sensor_fusion_[i][CAR_VEL_X] + sensor_fusion_[i][CAR_VEL_Y]*sensor_fusion_[i][CAR_VEL_Y]);
-      double sur_car_s = sensor_fusion_[i][CAR_S] + (previous_path_x_.size() * 0.02 * sur_car_vel);
-
-      if ((sur_car_s > car_s_) &&    // if s neighbouring car is greater
-          (sur_car_s - car_s_ < DISTANCE_THRESHOLD))
-      {
-        ret = true;
-        car_ahead_vel = sur_car_vel;
-      }
-    }
+    return LANE_2_e;
   }
-
-  return ret;
+  else if (getLane(car_d_) == LANE_3_e && dst_lane == LANE_1_e)
+  {
+    return LANE_2_e;
+  }
 }
 
-bool trajPlanner::lane_change_possible(laneNo lane)
+bool trajPlanner::check_car_ahead(laneNo lane, double& car_ahead_vel, double& car_ahead_dist)
 {
   bool ret = false;
-  bool is_nocar_in_cutrange = true;
 
   // loop thorugh the cars and check if they are nearer
   for (int i=0; i<sensor_fusion_.size(); i++)
@@ -327,8 +312,66 @@ bool trajPlanner::lane_change_possible(laneNo lane)
       double sur_car_vel = std::sqrt(sensor_fusion_[i][CAR_VEL_X]*sensor_fusion_[i][CAR_VEL_X] + sensor_fusion_[i][CAR_VEL_Y]*sensor_fusion_[i][CAR_VEL_Y]);
       double sur_car_s = sensor_fusion_[i][CAR_S] + (previous_path_x_.size() * 0.02 * sur_car_vel);
 
-      if (((sur_car_s > car_s_) && (sur_car_s - car_s_ < DISTANCE_THRESHOLD)) ||
-          ((sur_car_s < car_s_) && (car_s_ - sur_car_s < DISTANCE_THRESHOLD)))
+      if ((sur_car_s > car_s_) &&    // if s neighbouring car is greater
+          (sur_car_s - car_s_ < DISTANCE_THRESHOLD))
+      {
+        ret = true;
+        car_ahead_vel = sur_car_vel;
+        car_ahead_dist = sur_car_s - car_s_;
+      }
+    }
+  }
+
+  return ret;
+}
+
+void trajPlanner::get_car_ahead(laneNo lane, double& car_ahead_vel, double& car_ahead_dist)
+{
+  // initial value
+  double low_car_s = std::numeric_limits<double>::max();
+
+  // loop thorugh the cars and check if they are nearer
+  for (int i=0; i<sensor_fusion_.size(); i++)
+  {
+    // if car is in my lane
+    if (lane == getLane(sensor_fusion_[i][CAR_D]))
+    {
+      double sur_car_vel = std::sqrt(sensor_fusion_[i][CAR_VEL_X]*sensor_fusion_[i][CAR_VEL_X] + sensor_fusion_[i][CAR_VEL_Y]*sensor_fusion_[i][CAR_VEL_Y]);
+      double sur_car_s = sensor_fusion_[i][CAR_S] + (previous_path_x_.size() * 0.02 * sur_car_vel);
+
+      if (sur_car_s > car_s_ &&
+          sur_car_s < low_car_s)
+      {
+        low_car_s = sur_car_s;
+
+        // update the ahead velocity and the distance
+        car_ahead_vel = sur_car_vel;
+        car_ahead_dist = low_car_s - car_s_;
+      }
+    }
+  }
+}
+
+bool trajPlanner::lane_change_possible(laneNo lane, int fwd_th, int bwd_th)
+{
+  bool ret = false;
+  bool is_nocar_in_cutrange = true;
+
+  std::cout << "checking in lane: " << lane << "\n";
+
+  // loop thorugh the cars and check if they are nearer
+  for (int i=0; i<sensor_fusion_.size(); i++)
+  {
+    // if car is in my lane
+    if (lane == getLane(sensor_fusion_[i][CAR_D]))
+    {
+      // check if we can get too close to the car in the lane
+      double sur_car_vel = std::sqrt(sensor_fusion_[i][CAR_VEL_X]*sensor_fusion_[i][CAR_VEL_X] + sensor_fusion_[i][CAR_VEL_Y]*sensor_fusion_[i][CAR_VEL_Y]);
+      double sur_car_s = sensor_fusion_[i][CAR_S] + (previous_path_x_.size() * 0.02 * sur_car_vel);
+
+      std::cout << "our car_s: " << car_s_ << " sur_car_s: " << sur_car_s << "\n";
+      if (((sur_car_s > car_s_) && (sur_car_s - car_s_ < fwd_th)) ||
+          ((sur_car_s < car_s_) && (car_s_ - sur_car_s < bwd_th)))
       {
         is_nocar_in_cutrange = false;
       }
@@ -346,27 +389,97 @@ bool trajPlanner::lane_change_possible(laneNo lane)
 laneNo trajPlanner::check_lane_change(void)
 {
   laneNo ret_lane = NO_LANE_e;
+  bool is_lane_op1_possible = false, is_lane_op2_possible = false;
 
   // get the lanes possible for opening
   std::vector<laneNo> lane = check_lanes(getLane(car_d_));
 
-  if (lane_change_possible(lane[0]))
+  if (lane_change_possible(lane[0], 20, 15))
   {
     ret_lane = lane[0];
+    is_lane_op1_possible = true;
   }
-  else if(lane_change_possible(lane[1]))
+  if(lane_change_possible(lane[1], 20, 15))
   {
     ret_lane = lane[1];
+    is_lane_op2_possible = true;
   }
 
-  //std::cout <<"lane change to: " << ret_lane << "\n";
+  // when lane change is possible in multiple lanes, change to the fastest lane
+  if (is_lane_op1_possible == true &&
+      is_lane_op2_possible == true)
+  {
+    double car_dist_lane_op1, car_dist_lane_op2, car_vel_lane_op1, car_vel_lane_op2;
+    get_car_ahead(lane[0], car_vel_lane_op1, car_dist_lane_op1);
+    get_car_ahead(lane[1], car_vel_lane_op2, car_dist_lane_op2);
+
+    std::cout << "multiple lane change possible ";
+
+    if (car_dist_lane_op1 > car_dist_lane_op2 &&
+        car_vel_lane_op1 > car_vel_lane_op2)
+    {
+      ret_lane = lane[1];
+      std::cout << "1\n";
+    }
+    else if (car_dist_lane_op2 > car_dist_lane_op1 &&
+             car_vel_lane_op2 > car_vel_lane_op1)
+    {
+      ret_lane = lane[2];
+      std::cout << "2\n";
+    }
+    else if (car_vel_lane_op2 > car_vel_lane_op1)
+    {
+      ret_lane = lane[2];
+      std::cout << "3\n";
+    }
+    else if (car_vel_lane_op1 > car_vel_lane_op2)
+    {
+      ret_lane = lane[1];
+      std::cout << "4\n";
+    }
+    else if (car_dist_lane_op2 > car_dist_lane_op1)
+    {
+      ret_lane = lane[2];
+      std::cout << "5\n";
+    }
+    else if (car_dist_lane_op1 > car_dist_lane_op2)
+    {
+      ret_lane = lane[1];
+      std::cout << "6\n";
+    }
+    else
+    {
+      ret_lane = lane[1];
+      std::cout << "fall through case\n";
+    }
+  }
 
   return ret_lane;
+}
+
+void trajPlanner::update_velocity(double desired_velocity)
+{
+  if (car_speed_ < desired_velocity)
+  {
+    curr_vel_ += 1.3; //10*0.02*MetersPerSec_To_MPH;
+
+    if (curr_vel_ > DESRIRED_VELOCITY_MPH)
+    {
+      curr_vel_ = DESRIRED_VELOCITY_MPH;
+    }
+
+    //std::cout << "curr vel: " << curr_vel_ << " car_speed: " << car_speed_ << "\n";
+  }
+  else
+  {
+    curr_vel_ -= 1.6; //10*0.02*MetersPerSec_To_MPH;
+  }
 }
 
 void trajPlanner::generateTrajctory(std::vector<double>& next_x_vals, std::vector<double>& next_y_vals)
 {
   vector<double> ptx, pty;
+  double desire_vel;
 
   //reference car pose
   double ref_x = car_x_;
@@ -381,57 +494,61 @@ void trajPlanner::generateTrajctory(std::vector<double>& next_x_vals, std::vecto
   }
 
   // check if there is a car infornt which is too close
-  double car_ahead_vel;
-  if (check_car_ahead(car_ahead_vel))
+  double car_ahead_vel = 0, car_ahead_dist = MINIMUM_CAR_AHEAD_DISTANCE;  // default values if car ahead is not in the threshold
+  if (check_car_ahead(getLane(car_d_), car_ahead_vel, car_ahead_dist))
   {
+    std::cout << "\ncar ahead\n";
     laneNo lane = check_lane_change();
+    std::cout << "shift to " << lane << "\n";
 
-    if (lane != NO_LANE_e && abs(lane-getLane(car_d_)) == 1)
+    // if sufficient place is there in front for lane change
+    if (car_ahead_dist >= MINIMUM_CAR_AHEAD_DISTANCE)
     {
-      curr_lane_ = lane;
-      desire_vel_ = DESRIRED_VELOCITY_MPH;
-    }
-    else
-    {
-      //set desired speed to the car in front
-      desire_vel_ = car_ahead_vel;
-    }
-  }
-  else
-  {
-    desire_vel_ = DESRIRED_VELOCITY_MPH;
-  }
-
-  static double vel_prev=0.1;
-  static auto tim_prev = std::chrono::high_resolution_clock::now();
-  auto curr_time = std::chrono::high_resolution_clock::now();
-
-  std::chrono::duration<double> elapsed_dt = curr_time - tim_prev;
-  std::cout << "exec time " << elapsed_dt.count() << "\n";
-
-  std::cout << "vel prev: " << vel_prev;
-
-  if (car_speed_ < desire_vel_)
-  {
-    curr_vel_ += 1.6;
-    //curr_vel_ = vel_prev + (10*0.02*MetersPerSec_To_MPH);
-    //std::cout << "vel increasing\n";
-
-    if (curr_vel_ > DESRIRED_VELOCITY_MPH)
-    {
-      curr_vel_ = DESRIRED_VELOCITY_MPH;
-      //std::cout << "vel wrapped\n";
+      if (lane != NO_LANE_e && abs(lane-getLane(car_d_)) == 1)
+      {
+        curr_lane_ = lane;
+        desire_vel = DESRIRED_VELOCITY_MPH;
+        std::cout << "shifted to " << curr_lane_ << "\n";
+      }
+      else if (lane != NO_LANE_e && abs(lane-getLane(car_d_)) > 1)
+      {
+        // check if there is possibility for mutiple lane switches
+        if(lane_change_possible(get_intermediate_lane(lane), 15, 15))
+        {
+          curr_lane_ = LANE_2_e;
+          desire_vel = DESRIRED_VELOCITY_MPH;
+          std::cout << "inter lane shifted to " << curr_lane_ << "\n";
+        }
+        else
+        {
+          //set desired speed to the car in front
+          desire_vel = car_ahead_vel;
+          std::cout << "lane change not feasible" << lane << " car vel: " << car_ahead_vel << "\n";
+        }
+      }
+      else
+      {
+        //set desired speed to the car in front
+        desire_vel = car_ahead_vel;
+        std::cout << "lane change not feasible" << lane << " car vel: " << car_ahead_vel << "\n";
+      }
     }
   }
   else
   {
-    curr_vel_ -= 1.6;
-    //std::cout << "vel decreasing\n";
+    desire_vel = DESRIRED_VELOCITY_MPH;
   }
 
-  std::cout << " curr vel " << curr_vel_ << " car vel " << car_speed_ << "\n";
-  vel_prev = curr_vel_;
-  tim_prev = curr_time;
+  // update velocity
+  update_velocity(desire_vel);
+
+  // emergency stopping behaviour
+  if (car_ahead_dist < MINIMUM_CAR_AHEAD_DISTANCE)
+  {
+    std::cout << "!!!!!..emergency breaking..!!!!!!\n";
+    //curr_vel_ = 0;
+    desire_vel = 0;
+  }
 
   // if previous points are less than 2, (thats almost empty)
   if (previous_path_x_.size() < 2)
@@ -505,7 +622,7 @@ void trajPlanner::generateTrajctory(std::vector<double>& next_x_vals, std::vecto
 
   // get the points from the spline and add to way points
   // set a horizon and get the points on segments for desired velocity
-  double horizin_x = DISTANCE_THRESHOLD;
+  double horizin_x = HORIZON_X_THRESHOLD;
   double horizin_y = s(horizin_x);
   double horizin_dist = distance(0, 0, horizin_x, horizin_y);
 
@@ -533,6 +650,8 @@ void trajPlanner::generateTrajctory(std::vector<double>& next_x_vals, std::vecto
     next_x_vals.push_back(x_spline);
     next_y_vals.push_back(y_spline);
   }
+
+  // std::cout << "prev size: " << previous_path_x_.size() << " next size: " << next_x_vals.size() << "\n";
 
   //  std::cout << "final way points: \n";
   //  for (int i=0; i<next_x_vals.size(); i++)
