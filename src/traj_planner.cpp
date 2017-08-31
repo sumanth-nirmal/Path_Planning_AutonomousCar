@@ -463,12 +463,18 @@ void trajPlanner::update_velocity(double desired_velocity)
   {
     curr_vel_ += 1.3; //10*0.02*MetersPerSec_To_MPH;
 
+    // wrapping
+    if (curr_vel_ > desired_velocity)
+    {
+      curr_vel_ = desired_velocity;
+    }
+
     if (curr_vel_ > DESRIRED_VELOCITY_MPH)
     {
       curr_vel_ = DESRIRED_VELOCITY_MPH;
     }
 
-    //std::cout << "curr vel: " << curr_vel_ << " car_speed: " << car_speed_ << "\n";
+    std::cout << "curr vel: " << curr_vel_ << " car_speed: " << car_speed_ << "\n";
   }
   else
   {
@@ -521,16 +527,16 @@ void trajPlanner::generateTrajctory(std::vector<double>& next_x_vals, std::vecto
         }
         else
         {
-          //set desired speed to the car in front
-          desire_vel = car_ahead_vel;
-          std::cout << "lane change not feasible" << lane << " car vel: " << car_ahead_vel << "\n";
+          //slow down the car
+          desire_vel = 20; //car_ahead_vel*MetersPerSec_To_MPH;
+          std::cout << "lane change not feasible" << lane << " car vel: " << desire_vel << "\n";
         }
       }
       else
       {
         //set desired speed to the car in front
-        desire_vel = car_ahead_vel;
-        std::cout << "lane change not feasible" << lane << " car vel: " << car_ahead_vel << "\n";
+        desire_vel = car_ahead_vel*MetersPerSec_To_MPH;
+        std::cout << "lane change not feasible" << lane << " car vel: " << desire_vel << "\n";
       }
     }
   }
