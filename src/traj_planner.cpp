@@ -394,12 +394,12 @@ laneNo trajPlanner::check_lane_change(void)
   // get the lanes possible for opening
   std::vector<laneNo> lane = check_lanes(getLane(car_d_));
 
-  if (lane_change_possible(lane[0], 20, 15))
+  if (lane_change_possible(lane[0], 15, 10))
   {
     ret_lane = lane[0];
     is_lane_op1_possible = true;
   }
-  if(lane_change_possible(lane[1], 20, 15))
+  if(lane_change_possible(lane[1], 15, 10))
   {
     ret_lane = lane[1];
     is_lane_op2_possible = true;
@@ -510,7 +510,7 @@ void trajPlanner::update_velocity(double desired_velocity)
       curr_vel_ = DESRIRED_VELOCITY_MPH;
     }
 
-    std::cout << "curr vel: " << curr_vel_ << " car_speed: " << car_speed_ << "\n";
+    //std::cout << "curr vel: " << curr_vel_ << " car_speed: " << car_speed_ << "\n";
   }
   else
   {
@@ -518,28 +518,15 @@ void trajPlanner::update_velocity(double desired_velocity)
   }
 }
 
-void trajPlanner::generateTrajctory(std::vector<double>& next_x_vals, std::vector<double>& next_y_vals)
+void trajPlanner::get_lane_velocity(laneNo& desired_lane, double& desired_vel)
 {
-  vector<double> ptx, pty;
-  double desire_vel;
-
-  //reference car pose
-  double ref_x = car_x_;
-  double ref_y = car_y_;
-  double ref_yaw = deg2rad(car_yaw_);
-
-  // if there are previous points
-  if (previous_path_x_.size() > 0)
-  {
-    // update the current car s position to the end point position of previous path
-    car_s_ = end_path_s_;
-  }
+  desired_lane = getLane(car_d_); // initialise to the current lane
 
   // check if there is a car infornt which is too close
   double car_ahead_vel = 0, car_ahead_dist = MINIMUM_CAR_AHEAD_DISTANCE;  // default values if car ahead is not in the threshold
   if (check_car_ahead(getLane(car_d_), car_ahead_vel, car_ahead_dist))
   {
-    std::cout << "\ncar ahead\n";
+    std::cout << "\ncar ahead, car is in " << getLane(car_d_) << "\n";
     laneNo lane = check_lane_change();
     std::cout << "shift to " << lane << "\n";
 
@@ -548,8 +535,8 @@ void trajPlanner::generateTrajctory(std::vector<double>& next_x_vals, std::vecto
     {
       if (lane != NO_LANE_e && abs(lane-getLane(car_d_)) == 1)
       {
-        curr_lane_ = lane;
-        desire_vel = DESRIRED_VELOCITY_MPH;
+        desired_lane = lane;
+        desired_vel = DESRIRED_VELOCITY_MPH;
         std::cout << "shifted to " << curr_lane_ << "\n";
       }
       else if (lane != NO_LANE_e && abs(lane-getLane(car_d_)) > 1)
@@ -557,50 +544,50 @@ void trajPlanner::generateTrajctory(std::vector<double>& next_x_vals, std::vecto
         // check if there is possibility for mutiple lane switches
         if(lane_change_possible(get_intermediate_lane(lane), 15, 15))
         {
-          curr_lane_ = LANE_2_e;
-          desire_vel = DESRIRED_VELOCITY_MPH;
+          desired_lane = LANE_2_e;
+          desired_vel = DESRIRED_VELOCITY_MPH;
           std::cout << "inter lane shifted to " << curr_lane_ << "\n";
         }
         else
         {
           //slow down the car
-          desire_vel = 20; //car_ahead_vel*MetersPerSec_To_MPH;
-          std::cout << "lane change not feasible" << lane << " car vel: " << desire_vel << "\n";
+          desired_vel = 20; //car_ahead_vel*MetersPerSec_To_MPH;
+          std::cout << "inter lane change not feasible" << lane << " car vel: " << desired_vel << "\n";
         }
       }
       else
       {
         //set desired speed to the car in front
-        desire_vel = car_ahead_vel*MetersPerSec_To_MPH;
-        std::cout << "lane change not feasible" << lane << " car vel: " << desire_vel << "\n";
+        desired_vel = car_ahead_vel*MetersPerSec_To_MPH;
+        std::cout << "lane change not feasible" << lane << " car vel: " << desired_vel << "\n";
       }
     }
   }
   else
   {
-    desire_vel = DESRIRED_VELOCITY_MPH;
+    desired_vel = DESRIRED_VELOCITY_MPH;
   }
-
-  // update velocity
-  update_velocity(desire_vel);
 
   // emergency stopping behaviour
   if (car_ahead_dist < MINIMUM_CAR_AHEAD_DISTANCE)
   {
     std::cout << "!!!!!..emergency breaking..!!!!!!\n";
-    //curr_vel_ = 0;
-    desire_vel = 0;
+    desired_vel = 0;
   }
 
+}
+
+void trajPlanner::get_anchor_points(double& ref_x, double& ref_y, double& ref_yaw, std::vector<double>& x_points, std::vector<double>& y_points)
+{
   // if previous points are less than 2, (thats almost empty)
   if (previous_path_x_.size() < 2)
   {
     //we use the car state
-    ptx.push_back(car_x_ - cos(car_yaw_));
-    pty.push_back(car_y_ - sin(car_yaw_));
+    x_points.push_back(car_x_ - cos(car_yaw_));
+    y_points.push_back(car_y_ - sin(car_yaw_));
 
-    ptx.push_back(car_x_);
-    pty.push_back(car_y_);
+    x_points.push_back(car_x_);
+    y_points.push_back(car_y_);
   }
   // if it has points
   else
@@ -615,11 +602,11 @@ void trajPlanner::generateTrajctory(std::vector<double>& next_x_vals, std::vecto
 
     ref_yaw = atan2(ref_y - ref_y_prev, ref_x-ref_x_prev);
 
-    ptx.push_back(ref_x_prev);
-    pty.push_back(ref_y_prev);
+    x_points.push_back(ref_x_prev);
+    y_points.push_back(ref_y_prev);
 
-    ptx.push_back(ref_x);
-    pty.push_back(ref_y);
+    x_points.push_back(ref_x);
+    y_points.push_back(ref_y);
 
   }
 
@@ -629,31 +616,29 @@ void trajPlanner::generateTrajctory(std::vector<double>& next_x_vals, std::vecto
   vector<double> wp_3 = getXY(car_s_+90, getDforLane(curr_lane_), map_waypoints_s_, map_waypoints_x_, map_waypoints_y_);
 
   // push way points to the points
-  ptx.push_back(wp_1[0]);
-  pty.push_back(wp_1[1]);
+  x_points.push_back(wp_1[0]);
+  y_points.push_back(wp_1[1]);
 
-  ptx.push_back(wp_2[0]);
-  pty.push_back(wp_2[1]);
+  x_points.push_back(wp_2[0]);
+  y_points.push_back(wp_2[1]);
 
-  ptx.push_back(wp_3[0]);
-  pty.push_back(wp_3[1]);
+  x_points.push_back(wp_3[0]);
+  y_points.push_back(wp_3[1]);
 
   // transform all the way points to the ego car local co ordinate frame
-  for (int i=0; i<ptx.size(); i++)
+  for (int i=0; i<x_points.size(); i++)
   {
     // sift reference frmae
-    double shift_x = ptx[i] - ref_x;
-    double shift_y = pty[i] - ref_y;
+    double shift_x = x_points[i] - ref_x;
+    double shift_y = y_points[i] - ref_y;
 
-    ptx[i] = shift_x*cos(0-ref_yaw) - shift_y*sin(0-ref_yaw);
-    pty[i] = shift_x*sin(0-ref_yaw) + shift_y*cos(0-ref_yaw);
+    x_points[i] = shift_x*cos(0-ref_yaw) - shift_y*sin(0-ref_yaw);
+    y_points[i] = shift_x*sin(0-ref_yaw) + shift_y*cos(0-ref_yaw);
   }
+}
 
-  // fit the spline among these waypoints
-  tk::spline s;
-  //std::sort(ptx.begin(), ptx.end());
-  s.set_points(ptx, pty);
-
+void trajPlanner::get_waypoints(double ref_x, double ref_y, double ref_yaw, tk::spline& s, std::vector<double>& next_x_vals, std::vector<double>& next_y_vals)
+{
   // use the remaining points in the previous path
   // add these points to the new points, for smooth transition
   for (int i=0; i<previous_path_x_.size(); i++)
@@ -692,12 +677,60 @@ void trajPlanner::generateTrajctory(std::vector<double>& next_x_vals, std::vecto
     next_x_vals.push_back(x_spline);
     next_y_vals.push_back(y_spline);
   }
+}
+
+void trajPlanner::generateTrajctory(std::vector<double>& next_x_vals, std::vector<double>& next_y_vals)
+{
+  vector<double> ptx, pty;
+  double desired_vel;
+
+  //reference car pose
+  double ref_x = car_x_;
+  double ref_y = car_y_;
+  double ref_yaw = deg2rad(car_yaw_);
+
+  // if there are previous points
+  if (previous_path_x_.size() > 0)
+  {
+    // update the current car s position to the end point position of previous path
+    car_s_ = end_path_s_;
+  }
+
+  // get the lane and the velocity
+  laneNo lane;
+  static laneNo lane_prev = getLane(car_d_);  // initialise the previous lane
+  get_lane_velocity(lane, desired_vel);
+
+  // dont change the lane until the previous lane shift is completed
+  if (lane_prev != lane &&
+      lane_prev == getLane(car_d_))
+  {
+    // update the lane
+    curr_lane_ = lane;
+
+    // update the previous lane
+    lane_prev = lane;
+  }
+
+  // debug output
+  if(lane_prev != getLane(car_d_))
+  {
+    std::cout << "!!!!!!!!!!!!! waiting to finsih the lane change\n";
+  }
+
+  // update velocity
+  update_velocity(desired_vel);
+
+  // get the anchor points
+  get_anchor_points(ref_x, ref_y, ref_yaw, ptx, pty);
+
+  // fit the spline through anchor points
+  tk::spline s;
+  //std::sort(ptx.begin(), ptx.end());
+  s.set_points(ptx, pty);
+
+  // get the waypoints
+  get_waypoints(ref_x, ref_y, ref_yaw, s, next_x_vals, next_y_vals);
 
   // std::cout << "prev size: " << previous_path_x_.size() << " next size: " << next_x_vals.size() << "\n";
-
-  //  std::cout << "final way points: \n";
-  //  for (int i=0; i<next_x_vals.size(); i++)
-  //  {
-  //    std::cout << "x: " << next_x_vals[i] << " y: " << next_y_vals[i] << "\n";
-  //  }
 }

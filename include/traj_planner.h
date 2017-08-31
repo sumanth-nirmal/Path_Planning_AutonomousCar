@@ -114,4 +114,7 @@ private:
   laneNo check_lane_change(void);
   laneNo get_intermediate_lane(laneNo dst_lane);
   void update_velocity(double desired_velocity);
+  void get_lane_velocity(laneNo& desired_lane, double& desired_vel);
+  void get_anchor_points(double& ref_x, double& ref_y, double& ref_yaw, std::vector<double>& x_points, std::vector<double>& y_points);
+  void get_waypoints(double ref_x, double ref_y, double ref_yaw, tk::spline& s, std::vector<double>& next_x_vals, std::vector<double>& next_y_vals);
 };
