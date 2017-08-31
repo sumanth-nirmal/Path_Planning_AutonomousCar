@@ -357,7 +357,7 @@ bool trajPlanner::lane_change_possible(laneNo lane, int fwd_th, int bwd_th)
   bool ret = false;
   bool is_nocar_in_cutrange = true;
 
-  std::cout << "checking in lane: " << lane << "\n";
+  //std::cout << "checking in lane: " << lane << "\n";
 
   // loop thorugh the cars and check if they are nearer
   for (int i=0; i<sensor_fusion_.size(); i++)
@@ -369,7 +369,7 @@ bool trajPlanner::lane_change_possible(laneNo lane, int fwd_th, int bwd_th)
       double sur_car_vel = std::sqrt(sensor_fusion_[i][CAR_VEL_X]*sensor_fusion_[i][CAR_VEL_X] + sensor_fusion_[i][CAR_VEL_Y]*sensor_fusion_[i][CAR_VEL_Y]);
       double sur_car_s = sensor_fusion_[i][CAR_S] + (previous_path_x_.size() * 0.02 * sur_car_vel);
 
-      std::cout << "our car_s: " << car_s_ << " sur_car_s: " << sur_car_s << "\n";
+      //std::cout << "our car_s: " << car_s_ << " sur_car_s: " << sur_car_s << "\n";
       if (((sur_car_s > car_s_) && (sur_car_s - car_s_ < fwd_th)) ||
           ((sur_car_s < car_s_) && (car_s_ - sur_car_s < bwd_th)))
       {
@@ -413,36 +413,36 @@ laneNo trajPlanner::check_lane_change(void)
     get_car_ahead(lane[0], car_vel_lane_op1, car_dist_lane_op1);
     get_car_ahead(lane[1], car_vel_lane_op2, car_dist_lane_op2);
 
-    std::cout << "multiple lane change possible ";
+    //std::cout << "multiple lane change possible ";
 
     if (car_dist_lane_op1 > car_dist_lane_op2 &&
         car_vel_lane_op1 > car_vel_lane_op2)
     {
       ret_lane = lane[0];
-      std::cout << "1\n";
+      //std::cout << "1\n";
     }
     else if (car_dist_lane_op2 > car_dist_lane_op1 &&
              car_vel_lane_op2 > car_vel_lane_op1)
     {
       ret_lane = lane[1];
-      std::cout << "2\n";
+      //std::cout << "2\n";
     }
     else if (fabs(car_vel_lane_op2 - car_vel_lane_op1) < 5)
     {
       if (car_dist_lane_op2 > car_dist_lane_op1)
       {
         ret_lane = lane[1];
-        std::cout << "3\n";
+        //std::cout << "3\n";
       }
       else if (car_dist_lane_op1 > car_dist_lane_op2)
       {
         ret_lane = lane[0];
-        std::cout << "4\n";
+        //std::cout << "4\n";
       }
       else
       {
         ret_lane = lane[0];
-        std::cout << "equal distance..!\n";
+        //std::cout << "equal distance..!\n";
       }
     }
     else if (fabs(car_dist_lane_op2 - car_dist_lane_op1) < 5)
@@ -450,43 +450,43 @@ laneNo trajPlanner::check_lane_change(void)
       if (car_vel_lane_op2 > car_vel_lane_op1)
       {
         ret_lane = lane[1];
-        std::cout << "5\n";
+        //std::cout << "5\n";
       }
       else if (car_vel_lane_op1 > car_vel_lane_op2)
       {
         ret_lane = lane[0];
-        std::cout << "6\n";
+        //std::cout << "6\n";
       }
       else
       {
         ret_lane = lane[0];
-        std::cout << "equal velocity..!";
+        //std::cout << "equal velocity..!";
       }
     }
     else if (car_dist_lane_op2 > car_dist_lane_op1)
     {
       ret_lane = lane[1];
-      std::cout << "7\n";
+      //std::cout << "7\n";
     }
     else if (car_dist_lane_op1 > car_dist_lane_op2)
     {
       ret_lane = lane[0];
-      std::cout << "8\n";
+      //std::cout << "8\n";
     }
     else if (car_vel_lane_op2 > car_vel_lane_op1)
     {
       ret_lane = lane[1];
-      std::cout << "9\n";
+      //std::cout << "9\n";
     }
     else if (car_vel_lane_op1 > car_vel_lane_op2)
     {
       ret_lane = lane[0];
-      std::cout << "10\n";
+      //std::cout << "10\n";
     }
     else
     {
       ret_lane = lane[0];
-      std::cout << "fall through case\n";
+      //std::cout << "fall through case\n";
     }
   }
 
@@ -526,9 +526,9 @@ void trajPlanner::get_lane_velocity(laneNo& desired_lane, double& desired_vel)
   double car_ahead_vel = 0, car_ahead_dist = MINIMUM_CAR_AHEAD_DISTANCE;  // default values if car ahead is not in the threshold
   if (check_car_ahead(getLane(car_d_), car_ahead_vel, car_ahead_dist))
   {
-    std::cout << "\ncar ahead, car is in " << getLane(car_d_) << "\n";
+    //std::cout << "\ncar ahead, car is in " << getLane(car_d_) << "\n";
     laneNo lane = check_lane_change();
-    std::cout << "shift to " << lane << "\n";
+    //std::cout << "shift to " << lane << "\n";
 
     // if sufficient place is there in front for lane change
     if (car_ahead_dist >= MINIMUM_CAR_AHEAD_DISTANCE)
@@ -537,7 +537,7 @@ void trajPlanner::get_lane_velocity(laneNo& desired_lane, double& desired_vel)
       {
         desired_lane = lane;
         desired_vel = DESRIRED_VELOCITY_MPH;
-        std::cout << "shifted to " << curr_lane_ << "\n";
+        //std::cout << "shifted to " << curr_lane_ << "\n";
       }
       else if (lane != NO_LANE_e && abs(lane-getLane(car_d_)) > 1)
       {
@@ -546,20 +546,20 @@ void trajPlanner::get_lane_velocity(laneNo& desired_lane, double& desired_vel)
         {
           desired_lane = LANE_2_e;
           desired_vel = DESRIRED_VELOCITY_MPH;
-          std::cout << "inter lane shifted to " << curr_lane_ << "\n";
+          //std::cout << "inter lane shifted to " << curr_lane_ << "\n";
         }
         else
         {
           //slow down the car
           desired_vel = 20; //car_ahead_vel*MetersPerSec_To_MPH;
-          std::cout << "inter lane change not feasible" << lane << " car vel: " << desired_vel << "\n";
+          //std::cout << "inter lane change not feasible" << lane << " car vel: " << desired_vel << "\n";
         }
       }
       else
       {
         //set desired speed to the car in front
         desired_vel = car_ahead_vel*MetersPerSec_To_MPH;
-        std::cout << "lane change not feasible" << lane << " car vel: " << desired_vel << "\n";
+        //std::cout << "lane change not feasible" << lane << " car vel: " << desired_vel << "\n";
       }
     }
   }
@@ -571,7 +571,7 @@ void trajPlanner::get_lane_velocity(laneNo& desired_lane, double& desired_vel)
   // emergency stopping behaviour
   if (car_ahead_dist < MINIMUM_CAR_AHEAD_DISTANCE)
   {
-    std::cout << "!!!!!..emergency breaking..!!!!!!\n";
+    //std::cout << "!!!!!..emergency breaking..!!!!!!\n";
     desired_vel = 0;
   }
 
@@ -712,11 +712,11 @@ void trajPlanner::generateTrajctory(std::vector<double>& next_x_vals, std::vecto
     lane_prev = lane;
   }
 
-  // debug output
-  if(lane_prev != getLane(car_d_))
-  {
-    std::cout << "!!!!!!!!!!!!! waiting to finsih the lane change\n";
-  }
+//  // debug output
+//  if(lane_prev != getLane(car_d_))
+//  {
+//    std::cout << "!!!!!!!!!!!!! waiting to finsih the lane change\n";
+//  }
 
   // update velocity
   update_velocity(desired_vel);
