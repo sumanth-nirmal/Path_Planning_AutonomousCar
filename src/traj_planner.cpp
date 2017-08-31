@@ -427,25 +427,61 @@ laneNo trajPlanner::check_lane_change(void)
       ret_lane = lane[1];
       std::cout << "2\n";
     }
-    else if (car_vel_lane_op2 > car_vel_lane_op1)
+    else if (fabs(car_vel_lane_op2 - car_vel_lane_op1) < 5)
     {
-      ret_lane = lane[1];
-      std::cout << "3\n";
+      if (car_dist_lane_op2 > car_dist_lane_op1)
+      {
+        ret_lane = lane[1];
+        std::cout << "3\n";
+      }
+      else if (car_dist_lane_op1 > car_dist_lane_op2)
+      {
+        ret_lane = lane[0];
+        std::cout << "4\n";
+      }
+      else
+      {
+        ret_lane = lane[0];
+        std::cout << "equal distance..!\n";
+      }
     }
-    else if (car_vel_lane_op1 > car_vel_lane_op2)
+    else if (fabs(car_dist_lane_op2 - car_dist_lane_op1) < 5)
     {
-      ret_lane = lane[0];
-      std::cout << "4\n";
+      if (car_vel_lane_op2 > car_vel_lane_op1)
+      {
+        ret_lane = lane[1];
+        std::cout << "5\n";
+      }
+      else if (car_vel_lane_op1 > car_vel_lane_op2)
+      {
+        ret_lane = lane[0];
+        std::cout << "6\n";
+      }
+      else
+      {
+        ret_lane = lane[0];
+        std::cout << "equal velocity..!";
+      }
     }
     else if (car_dist_lane_op2 > car_dist_lane_op1)
     {
       ret_lane = lane[1];
-      std::cout << "5\n";
+      std::cout << "7\n";
     }
     else if (car_dist_lane_op1 > car_dist_lane_op2)
     {
       ret_lane = lane[0];
-      std::cout << "6\n";
+      std::cout << "8\n";
+    }
+    else if (car_vel_lane_op2 > car_vel_lane_op1)
+    {
+      ret_lane = lane[1];
+      std::cout << "9\n";
+    }
+    else if (car_vel_lane_op1 > car_vel_lane_op2)
+    {
+      ret_lane = lane[0];
+      std::cout << "10\n";
     }
     else
     {
