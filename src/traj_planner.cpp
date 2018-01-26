@@ -495,9 +495,16 @@ laneNo trajPlanner::check_lane_change(void)
 
 void trajPlanner::update_velocity(double desired_velocity)
 {
+
+//  static int prev = clock();
+//  int now = clock();
+//  float dt = (now - prev)/double(CLOCKS_PER_SEC)*1000;
+//  prev = now;
+
   if (car_speed_ < desired_velocity)
   {
-    curr_vel_ += 1.3; //10*0.02*MetersPerSec_To_MPH;
+    // std::cout << "curr vel: " << curr_vel_ << " dt: " << dt << " \n";
+    curr_vel_ += 1.1; // 10*dt*MetersPerSec_To_MPH;
 
     // wrapping
     if (curr_vel_ > desired_velocity)
@@ -514,7 +521,7 @@ void trajPlanner::update_velocity(double desired_velocity)
   }
   else
   {
-    curr_vel_ -= 1.6; //10*0.02*MetersPerSec_To_MPH;
+    curr_vel_ -= 1.1; //10*0.02*MetersPerSec_To_MPH;
   }
 }
 

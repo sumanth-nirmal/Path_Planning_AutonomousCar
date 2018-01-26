@@ -8,9 +8,11 @@
 #include <spline.h>
 #include <chrono>
 #include <unistd.h>
+#include <iomanip>
+#include <ctime>
 
-#define MetersPerSec_To_MPH          2.24
-#define DESRIRED_VELOCITY_MPH        49.9
+#define MetersPerSec_To_MPH          2.23694
+#define DESRIRED_VELOCITY_MPH        49.5
 #define NO_OF_POINTS_PER_PATH        35
 #define DISTANCE_THRESHOLD           20
 #define HORIZON_X_THRESHOLD          30

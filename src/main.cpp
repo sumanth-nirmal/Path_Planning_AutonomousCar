@@ -33,14 +33,14 @@ string hasData(string s) {
 int main() {
 
   // trajectory generator
-  trajPlanner trj("../data/highway_map_bosch1_final.csv");
+  //trajPlanner trj("../data/highway_map_bosch1_final.csv");
   //trajPlanner trj("../data/highway_map_bosch1.csv");
-  //trajPlanner trj("../data/highway_map.csv");
+  trajPlanner trj("../data/highway_map.csv");
 
   uWS::Hub h;
 
   // The max s value before wrapping around the track back to 0
-  double max_s = 6945.554;
+  // double max_s = 6945.554;
 
   h.onMessage([&trj](uWS::WebSocket<uWS::SERVER> ws, char *data, size_t length, uWS::OpCode opCode)
   {
